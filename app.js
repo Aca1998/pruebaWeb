@@ -1,4 +1,4 @@
-const PASSWORD = "admin"; 
+const PASSWORD = "insairelec51";
 
 // --- LÓGICA DE NAVEGACIÓN Y LOGIN ---
 function checkLogin() {
