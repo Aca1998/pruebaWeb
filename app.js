@@ -9,14 +9,13 @@ function checkLogin() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('adminPanel').classList.remove('hidden');
             
-            // Cargar fecha actual (Formato clásico)
             const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
             const hoy = new Date();
             const fechaStr = `${hoy.getDate()}-${meses[hoy.getMonth()]}-${hoy.getFullYear().toString().slice(-2)}`;
             document.getElementById('invoiceDate').innerText = fechaStr;
             
             renderClients();
-            sortHistory(); // Carga el historial ordenado
+            sortHistory(); 
         }, 300);
     } else {
         document.getElementById('errorMsg').style.display = 'block';
@@ -81,7 +80,7 @@ function renderClients() {
             <p><strong>NIF/CIF:</strong> ${client.nif}</p>
             <p><strong>Dirección:</strong> ${client.address}</p>
             <div class="client-actions">
-                <button class="btn-invoice-client" onclick="createInvoiceForClient(${client.id})">📝 Hacer Factura</button>
+                <button class="btn-invoice-client" onclick="createInvoiceForClient(${client.id})">📝 Hacer Documento</button>
                 <button class="btn-delete" onclick="deleteClient(${client.id})">Borrar</button>
             </div>
         `;
@@ -127,9 +126,28 @@ function deleteItem(index) {
     renderTable();
 }
 
+function toggleColumns() {
+    const table = document.getElementById('mainInvoiceTable');
+    if (document.getElementById('hideDetailsToggle').checked) {
+        table.classList.add('hide-details-mode');
+    } else {
+        table.classList.remove('hide-details-mode');
+    }
+}
+
+function changeDocType() {
+    const tipo = document.getElementById('docTypeSelect').value;
+    document.getElementById('docType').innerText = tipo;
+}
+
 function renderTable() {
     const tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
+
+    const hideDetails = document.getElementById('hideDetailsToggle').checked;
+    document.getElementById('th-price').style.display = hideDetails ? 'none' : 'table-cell';
+    document.getElementById('th-total').style.display = hideDetails ? 'none' : 'table-cell';
+    document.getElementById('th-desc').style.width = hideDetails ? '85%' : '55%';
 
     items.forEach((item, index) => {
         const totalLinea = item.qty * item.price;
@@ -138,10 +156,10 @@ function renderTable() {
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${item.desc}</td>
-            <td class="center">${item.qty.toString().replace('.', ',')}</td>
-            <td class="right">${precioText}</td>
-            <td class="right">${totalText}</td>
+            <td class="col-desc">${item.desc}</td>
+            <td class="col-qty center">${item.qty.toString().replace('.', ',')}</td>
+            <td class="col-price right" style="display: ${hideDetails ? 'none' : 'table-cell'};">${precioText}</td>
+            <td class="col-total right" style="display: ${hideDetails ? 'none' : 'table-cell'};">${totalText}</td>
             <td class="hide-on-print right" data-html2canvas-ignore="true">
                 <button class="btn-delete" onclick="deleteItem(${index})">X</button>
             </td>
@@ -187,6 +205,8 @@ async function generatePDF() {
     const element = document.getElementById('invoice');
     const pdfButton = document.querySelector('.btn-pdf');
     
+    const docType = document.getElementById('docType').innerText.trim().toUpperCase();
+    
     pdfButton.innerText = "⏳ Generando PDF...";
 
     try {
@@ -197,9 +217,8 @@ async function generatePDF() {
         const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
         pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-        pdf.save('Factura_Instalaciones_Aguayo.pdf');
+        pdf.save(`${docType}_Instalaciones_Aguayo.pdf`);
 
-        // Guardar automáticamente en el historial al exportar
         saveInvoiceToHistory();
 
     } catch (error) {
@@ -216,18 +235,35 @@ async function generatePDF() {
 let invoiceHistory = JSON.parse(localStorage.getItem('aguayo_history')) || [];
 
 function saveInvoiceToHistory() {
+    const docType = document.getElementById('docType').innerText.trim().toUpperCase();
     const num = document.getElementById('invoiceNumber').innerText;
-    const client = document.getElementById('invoiceClientName').innerText;
+    const clientName = document.getElementById('invoiceClientName').innerText;
+    const clientNif = document.getElementById('invoiceClientNif').innerText;
+    const clientAddress = document.getElementById('invoiceClientAddress').innerText;
     const dateStr = document.getElementById('invoiceDate').innerText;
     const total = document.getElementById('total').innerText;
+    
+    // Guardamos los campos de configuración ocultos
+    const iva = document.getElementById('ivaSelect').value;
+    const irpf = document.getElementById('irpfSelect').value;
+    const hideDetails = document.getElementById('hideDetailsToggle').checked;
+
     const timestamp = Date.now();
 
     const newInvoice = {
         id: timestamp,
+        type: docType,
         number: num,
-        client: client,
+        client: clientName,
+        clientNif: clientNif,
+        clientAddress: clientAddress,
         date: dateStr,
-        total: total
+        total: total,
+        // Almacenamos todo el array de items tal y como está
+        items: JSON.parse(JSON.stringify(items)),
+        iva: iva,
+        irpf: irpf,
+        hideDetails: hideDetails
     };
 
     invoiceHistory.push(newInvoice);
@@ -235,27 +271,33 @@ function saveInvoiceToHistory() {
     sortHistory();
 }
 
-function renderHistory() {
+function renderHistory(dataToRender = invoiceHistory) {
     const list = document.getElementById('historyList');
     if (!list) return;
     list.innerHTML = '';
 
-    if (invoiceHistory.length === 0) {
-        list.innerHTML = '<p style="color: var(--gray);">Aún no has generado ninguna factura.</p>';
+    if (dataToRender.length === 0) {
+        list.innerHTML = '<p style="color: var(--gray);">No hay documentos que coincidan con la búsqueda.</p>';
         return;
     }
 
-    invoiceHistory.forEach(inv => {
+    dataToRender.forEach(inv => {
         const card = document.createElement('div');
         card.className = 'history-card';
+        
+        let badgeColor = "var(--primary)";
+        if (inv.type === "PRESUPUESTO") badgeColor = "var(--accent-color)";
+        if (inv.type === "ALBARÁN" || inv.type === "ALBARAN") badgeColor = "#8b5cf6";
+
         card.innerHTML = `
             <div class="history-info">
-                <h3>Factura: ${inv.number}</h3>
+                <h3 style="color: ${badgeColor};">${inv.type || 'FACTURA'} Nº: ${inv.number}</h3>
                 <p><strong>Cliente:</strong> ${inv.client}</p>
                 <p><strong>Fecha:</strong> ${inv.date}</p>
             </div>
-            <div style="display: flex; align-items: center; gap: 20px;">
-                <div class="history-total">${inv.total}</div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: flex-end;">
+                <div class="history-total" style="margin-right: 15px;">${inv.total}</div>
+                <button class="btn-load" onclick="loadInvoice(${inv.id})">🔄 Cargar y Descargar</button>
                 <button class="btn-delete" onclick="deleteHistoryItem(${inv.id})">Borrar</button>
             </div>
         `;
@@ -265,18 +307,65 @@ function renderHistory() {
 
 function sortHistory() {
     const order = document.getElementById('historySort').value;
-    if (order === 'desc') {
-        invoiceHistory.sort((a, b) => b.id - a.id);
-    } else {
-        invoiceHistory.sort((a, b) => a.id - b.id);
+    const monthFilter = document.getElementById('historyMonth').value;
+
+    let filteredHistory = [...invoiceHistory];
+
+    // Aplicar filtro de mes
+    if (monthFilter !== 'all') {
+        filteredHistory = filteredHistory.filter(inv => {
+            // Buscamos si la abreviatura del mes (ej: "oct") está en la fecha guardada
+            return inv.date.toLowerCase().includes(monthFilter.toLowerCase());
+        });
     }
-    renderHistory();
+
+    // Aplicar ordenación
+    if (order === 'desc') {
+        filteredHistory.sort((a, b) => b.id - a.id);
+    } else {
+        filteredHistory.sort((a, b) => a.id - b.id);
+    }
+    
+    renderHistory(filteredHistory);
+}
+
+// Función para volver a cargar la factura completa
+function loadInvoice(id) {
+    const inv = invoiceHistory.find(i => i.id === id);
+    if (!inv) return;
+
+    // Verificamos si tiene los items (las nuevas lo tendrán)
+    if (inv.items) {
+        // Cargar las líneas
+        items = JSON.parse(JSON.stringify(inv.items));
+        
+        // Cargar controles
+        document.getElementById('docTypeSelect').value = inv.type || 'FACTURA';
+        document.getElementById('ivaSelect').value = inv.iva || '21';
+        document.getElementById('irpfSelect').value = inv.irpf || '0';
+        document.getElementById('hideDetailsToggle').checked = inv.hideDetails || false;
+        
+        // Cargar textos en la hoja
+        document.getElementById('docType').innerText = inv.type || 'FACTURA';
+        document.getElementById('invoiceNumber').innerText = inv.number;
+        document.getElementById('invoiceClientName').innerText = inv.client;
+        document.getElementById('invoiceClientNif').innerText = inv.clientNif || '';
+        document.getElementById('invoiceClientAddress').innerText = inv.clientAddress || '';
+        document.getElementById('invoiceDate').innerText = inv.date;
+
+        renderTable(); 
+        showView('new-invoice');
+        
+        alert("¡Documento cargado! Revisa que todo esté correcto y pulsa 'Generar y Descargar PDF'.");
+    } else {
+        alert("Lo siento, este documento es muy antiguo y no guardó las líneas de detalle. Las próximas que guardes sí funcionarán.");
+    }
 }
 
 function deleteHistoryItem(id) {
     if(confirm("¿Seguro que quieres borrar este registro del historial?")) {
         invoiceHistory = invoiceHistory.filter(inv => inv.id !== id);
         localStorage.setItem('aguayo_history', JSON.stringify(invoiceHistory));
-        renderHistory();
+        sortHistory();
     }
 }

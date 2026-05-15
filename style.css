@@ -41,20 +41,16 @@ body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 .btn-pdf:hover { background: #059669; }
 .btn-delete { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
 .btn-delete:hover { background: #dc2626; }
+.btn-load { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;}
+.btn-load:hover { background: var(--primary-hover); }
 
-/* --- TARJETAS CLIENTES --- */
+/* --- TARJETAS CLIENTES Y HISTORIAL --- */
 .client-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid var(--accent-color); }
 .client-card h3 { margin-top: 0; color: var(--primary); margin-bottom: 5px;}
 .client-card p { margin: 5px 0; color: #4b5563; font-size: 14px;}
 .client-actions { margin-top: 15px; display: flex; gap: 10px; }
 .btn-invoice-client { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;}
-
-/* --- TARJETAS HISTORIAL --- */
-.history-card {
-    background: white; padding: 15px 20px; border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #10b981;
-    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;
-}
+.history-card { background: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-left: 4px solid #10b981; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
 .history-info h3 { margin: 0 0 5px 0; color: var(--primary); font-size: 16px;}
 .history-info p { margin: 2px 0; color: #4b5563; font-size: 14px; }
 .history-total { font-size: 18px; font-weight: bold; color: var(--dark); min-width: 100px; text-align: right;}
@@ -85,13 +81,25 @@ body { margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
 .items-table .center { text-align: center; }
 .items-table .right { text-align: right; }
 
+.hide-details-mode .col-qty,
+.hide-details-mode .col-price { display: none; }
+.hide-details-mode .col-desc { width: 85% !important; }
+.hide-details-mode .col-total { width: 15% !important; }
+
 .invoice-bottom { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 50px; }
-.totals-grid-box { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 2px solid black; text-align: center; min-width: 350px; font-size: 14px; }
+
+.firma-box { width: 40%; text-align: left; padding-bottom: 10px; }
+.firma-img { width: 100%; max-width: 250px; height: auto; mix-blend-mode: multiply; }
+
+.totals-and-footer { width: 55%; display: flex; flex-direction: column; align-items: center; }
+
+.totals-grid-box { width: 100%; display: grid; grid-template-columns: 1fr 1fr 1fr; border: 2px solid black; text-align: center; font-size: 14px; }
 .totals-grid-box.has-irpf { grid-template-columns: 1fr 1fr 1fr 1fr; }
 .totals-grid-box div { padding: 10px; border: 1px solid black; }
 .totals-grid-box .header-t { font-weight: bold; border-bottom: 2px solid black;}
 
-.stamp-area { text-align: center; font-size: 14px; font-weight: bold; }
-.date-location { margin-bottom: 40px; }
-.iban-text { font-size: 13px; margin-top: 10px;}
+.stamp-area { text-align: center; font-size: 14px; font-weight: bold; margin-top: 20px; width: 100%; }
+.date-location { margin-bottom: 10px; }
+.iban-text { font-size: 12px; font-weight: normal; }
+
 .hide-on-print { display: table-cell; }
